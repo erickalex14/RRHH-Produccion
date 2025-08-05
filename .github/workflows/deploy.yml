@@ -1,0 +1,74 @@
+name: Deploy to Ubuntu Server
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      rollback_to:
+        description: 'Release timestamp to rollback to (YYYYMMDDHHMMSS)'
+        required: false
+        type: string
+
+jobs:
+  deploy:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Deploy to server
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          cd /var/www/deployments
+          ./deploy.sh
+          echo "Deployment completed at $(date)"
+
+  rollback:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.rollback_to != ''
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Rollback to previous version
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          ROLLBACK_RELEASE="/var/www/deployments/releases/${{ github.event.inputs.rollback_to }}"
+          CURRENT_LINK="/var/www/recursos-humanos"
+          
+          if [ -d "$ROLLBACK_RELEASE" ]; then
+            echo "Rolling back to: $ROLLBACK_RELEASE"
+            ln -nfs $ROLLBACK_RELEASE $CURRENT_LINK
+            sudo systemctl reload nginx
+            echo "Rollback completed successfully"
+          else
+            echo "Release ${{ github.event.inputs.rollback_to }} not found"
+            echo "Available releases:"
+            ls -la /var/www/deployments/releases/
+            exit 1
+          fi
+
+  list-releases:
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.rollback_to == ''
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: List available releases
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          echo "=== RELEASES DISPONIBLES ==="
+          cd /var/www/deployments/releases
+          ls -la
+          echo ""
+          echo "=== RELEASE ACTUAL ==="
+          readlink /var/www/recursos-humanos
