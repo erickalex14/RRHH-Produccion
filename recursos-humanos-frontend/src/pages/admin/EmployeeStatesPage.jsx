@@ -12,7 +12,7 @@ const EmployeeStatesPage = () => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    created_by: ''
+    active: true
   });
 
   // Get current user from localStorage to set as created_by
@@ -21,10 +21,7 @@ const EmployeeStatesPage = () => {
       const userString = localStorage.getItem('user');
       if (userString) {
         const user = JSON.parse(userString);
-        setFormData(prev => ({
-          ...prev,
-          created_by: user.user_id
-        }));
+        // No need to set created_by since it's not part of the model
       }
     } catch (err) {
       console.error('Error getting user from localStorage:', err);
@@ -49,22 +46,10 @@ const EmployeeStatesPage = () => {
   };
 
   const resetForm = () => {
-    const userString = localStorage.getItem('user');
-    let userId = '';
-    
-    if (userString) {
-      try {
-        const user = JSON.parse(userString);
-        userId = user.user_id;
-      } catch (e) {
-        console.error('Error parsing user from localStorage:', e);
-      }
-    }
-    
     setFormData({
       name: '',
       description: '',
-      created_by: userId
+      active: true
     });
     setSelectedState(null);
   };
@@ -90,7 +75,7 @@ const EmployeeStatesPage = () => {
     setFormData({
       name: state.name || '',
       description: state.description || '',
-      created_by: state.created_by || ''
+      active: state.active !== undefined ? state.active : true
     });
 
     setShowForm(true);
@@ -219,6 +204,22 @@ const EmployeeStatesPage = () => {
                   rows={3}
                 />
               </div>
+              <div>
+                <label htmlFor="active" className="block text-sm font-medium text-gray-700">
+                  Estado
+                </label>
+                <select
+                  id="active"
+                  name="active"
+                  value={formData.active}
+                  onChange={(e) => setFormData({...formData, active: e.target.value === 'true'})}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  required
+                >
+                  <option value={true}>Activo</option>
+                  <option value={false}>Inactivo</option>
+                </select>
+              </div>
               <div className="flex justify-end space-x-3 mt-6">
                 <button
                   type="button"
@@ -279,6 +280,12 @@ const EmployeeStatesPage = () => {
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
+                  Estado
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
                   Acciones
                 </th>
               </tr>
@@ -286,7 +293,7 @@ const EmployeeStatesPage = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {employeeStates.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500">
                     No hay estados de empleados registrados
                   </td>
                 </tr>
@@ -301,6 +308,15 @@ const EmployeeStatesPage = () => {
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {state.description || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        state.active 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {state.active ? 'Activo' : 'Inactivo'}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
